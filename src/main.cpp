@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 #include "math.h"
 #include "raylib.h"
 #include "raymath.h"
@@ -13,8 +14,7 @@ struct Wall {
     Vector3 centerPosition;
     float xAxisRotation;
     float yAxisRotation;
-    int slices = 10;
-    float spacing = 1.0f;
+    Vector2 size = { 10.0f, 10.0f };
 
     // unit vector normal to wall plane
     Vector3 normalVector() {
@@ -25,16 +25,25 @@ struct Wall {
     }
 
     float distanceToWall(Vector3 point) {
-        float displacementAlongNormal = Vector3DotProduct(normalVector(), centerPosition);
+        float displacementAlongNormal = -1.0f * Vector3DotProduct(normalVector(), centerPosition);
         return abs(Vector3DotProduct(normalVector(), point) + displacementAlongNormal) / Vector3Length(normalVector());
     }
 
     void draw() {
         rlPushMatrix();
+        rlTranslatef(centerPosition.x, centerPosition.y, centerPosition.z);
         rlRotatef(xAxisRotation, 1.0f, 0.0f, 0.0f);
         rlRotatef(yAxisRotation, 0.0f, 1.0f, 0.0f);
+        DrawPlane( { 0.0f, 0.0f, 0.0f }, size, BLACK);
+        // DrawLine3D( { 0.0f, 0.0f, 0.0f }, normalVector(), RED);
+        rlPopMatrix();
+
+        // Draw back side of the wall
+        rlPushMatrix();
         rlTranslatef(centerPosition.x, centerPosition.y, centerPosition.z);
-        DrawGrid(slices, spacing);
+        rlRotatef(xAxisRotation + 180.0f, 1.0f, 0.0f, 0.0f);
+        rlRotatef(yAxisRotation + 180.0f, 0.0f, 1.0f, 0.0f);
+        DrawPlane(Vector3 { 0.0f, 0.0f, 0.0f }, size, Color { 125, 125, 125, 200 });
         rlPopMatrix();
     }
     
@@ -99,17 +108,13 @@ int main() {
     camera.fovy = 90.0f;                                // Camera field-of-view Y
     camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
 
-    Vector3 roomCenter = { 0.0f, 0.0f, 0.0f };
-    float roomWidth = 10.0f;
-    float roomHeight = 10.0f;
-    float roomLength = 10.0f;
-    int nRoomGrids = 10;
+    std::vector<Wall> room;
+    Wall bottomWall { { 0.0f, 0.0f, 0.0f }, 0.0f, 0.0f };
+    room.push_back(bottomWall);    
+    Wall topWall { { 0.0f, 10.0f, 0.0f}, 180.0f, 0.0f };
+    room.push_back(topWall);
 
-    Ball3d ball { Vector3 { 0.0f, 20.0f, 0.0f }, Vector3 { 0.0f, -0.1f, 0.0f } };
-    Wall wall;
-    wall.centerPosition = { 0.0f, 0.0f, 0.0f };
-    wall.xAxisRotation = 15.0f;
-    wall.yAxisRotation = 0.0f;
+    Ball3d ball { Vector3 { 0.0f, 5.0f, 0.0f }, Vector3 { 0.0f, -0.05f, 0.0f } };
 
     DisableCursor();                    // Limit cursor to relative movement inside the window
 
@@ -122,10 +127,13 @@ int main() {
         // Update
         //----------------------------------------------------------------------------------
         UpdateCamera(&camera, CAMERA_FREE);
-        ball.updatePosition();
-        ball.handleWallCollision(wall);
 
-        std::cout << wall.distanceToWall(ball.position) << std::endl;
+        for (Wall wall : room) {
+            std::cout << wall.distanceToWall(ball.position) << "    ";
+            ball.handleWallCollision(wall);
+        }
+        std::cout << std::endl;
+        ball.updatePosition();
 
         if (IsKeyPressed('Z')) camera.target = Vector3 { 0.0f, 0.0f, 0.0f };
         //----------------------------------------------------------------------------------
@@ -139,11 +147,11 @@ int main() {
             BeginMode3D(camera);
      
                 ball.draw();
-                wall.draw();
-                DrawLine3D({0.0f, 0.0f, 0.0f}, wall.normalVector(), RED);
+                for (Wall wall : room) {
+                    wall.draw();
+                }
 
                 DrawSphere({ 0.0f, 0.0f, 0.0f }, 0.1f, BLUE);
-                // DrawGrid(10, 1.0f);
 
             EndMode3D();
 
