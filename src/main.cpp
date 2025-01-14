@@ -14,14 +14,30 @@ struct Wall {
     Vector3 centerPosition;
     float xAxisRotation;
     float yAxisRotation;
+    float xAxisRotationRadians = xAxisRotation * (PI / 180.0f);
+    float yAxisRotationRadians = yAxisRotation * (PI / 180.0f);
     Vector2 size = { 10.0f, 10.0f };
+
+    void set_xAxisRotation(float newXRotation) {
+        xAxisRotation = newXRotation;
+        xAxisRotationRadians = newXRotation * (PI / 180.0f);
+    }
+
+    void set_yAxisRotation(float newYRotation) {
+        yAxisRotation = newYRotation;
+        yAxisRotationRadians = newYRotation * (PI / 180.0f);
+    }
 
     // unit vector normal to wall plane
     Vector3 normalVector() {
         // calculation relies on normal vector initially lying along y-axis, then performing appropriate rotations
-        float xAxisRotationRadians = xAxisRotation * (PI / 180.0f);
-        float yAxisRotationRadians = yAxisRotation * (PI / 180.0f);
-        return {sin(yAxisRotationRadians) * cos(xAxisRotationRadians), cos(xAxisRotationRadians), cos(yAxisRotationRadians) * sin(xAxisRotationRadians)};
+        return {sin(yAxisRotationRadians) * sin(xAxisRotationRadians), cos(xAxisRotationRadians), cos(yAxisRotationRadians) * sin(xAxisRotationRadians)};
+    }
+
+    // unit vector lying in the wall plane
+    Vector3 inplaneVector() {
+        // calculation relies on vector initially lying along z-axis, then performing appropriate rotations
+        return {sin(yAxisRotationRadians) * cos(xAxisRotationRadians), -1.0f*sin(xAxisRotationRadians), cos(yAxisRotationRadians) * cos(xAxisRotationRadians)};
     }
 
     float distanceToWall(Vector3 point) {
@@ -32,18 +48,19 @@ struct Wall {
     void draw() {
         rlPushMatrix();
         rlTranslatef(centerPosition.x, centerPosition.y, centerPosition.z);
-        rlRotatef(xAxisRotation, 1.0f, 0.0f, 0.0f);
         rlRotatef(yAxisRotation, 0.0f, 1.0f, 0.0f);
+        rlRotatef(xAxisRotation, 1.0f, 0.0f, 0.0f);
         DrawPlane( { 0.0f, 0.0f, 0.0f }, size, BLACK);
-        // DrawLine3D( { 0.0f, 0.0f, 0.0f }, normalVector(), RED);
         rlPopMatrix();
 
         // Draw back side of the wall
+        Vector3 _inplaneVector = inplaneVector();
         rlPushMatrix();
         rlTranslatef(centerPosition.x, centerPosition.y, centerPosition.z);
-        rlRotatef(xAxisRotation + 180.0f, 1.0f, 0.0f, 0.0f);
-        rlRotatef(yAxisRotation + 180.0f, 0.0f, 1.0f, 0.0f);
-        DrawPlane(Vector3 { 0.0f, 0.0f, 0.0f }, size, Color { 125, 125, 125, 200 });
+        rlRotatef(180.0f, _inplaneVector.x, _inplaneVector.y, _inplaneVector.z);
+        rlRotatef(yAxisRotation, 0.0f, 1.0f, 0.0f);
+        rlRotatef(xAxisRotation, 1.0f, 0.0f, 0.0f);
+        DrawPlane(Vector3 { 0.0f, 0.0f, 0.0f }, size, Color { 125, 125, 125, 225 });
         rlPopMatrix();
     }
     
@@ -54,7 +71,7 @@ struct Ball3d {
     Vector3 initialVelocity;
     Vector3 pastPosition = Vector3Subtract(position, Vector3Scale(initialVelocity, DT));
     Vector3 acceleration = { 0.0f, 0.0f, 0.0f };
-    float radius = 1.0f;
+    float radius = 0.5f;
     int mass = 1;
     Color color = BLUE;
 
@@ -74,6 +91,7 @@ struct Ball3d {
 
             // We can do this to get the normal component because the normalVector is a unit vector
             float normalVelocityMagnitude = Vector3DotProduct(velocity, wall.normalVector());
+            std::cout << wall.normalVector().x << " " << wall.normalVector().y << " " << wall.normalVector().z << std::endl;
             Vector3 normalVelocity = Vector3Scale(wall.normalVector(), normalVelocityMagnitude);
 
             // we can reverse the velocity in the normal direction by subtracting two times its component in that direction
@@ -111,10 +129,16 @@ int main() {
     std::vector<Wall> room;
     Wall bottomWall { { 0.0f, 0.0f, 0.0f }, 0.0f, 0.0f };
     room.push_back(bottomWall);    
-    Wall topWall { { 0.0f, 10.0f, 0.0f}, 180.0f, 0.0f };
+    Wall topWall { { 0.0f, 10.0f, 0.0f }, 180.0f, 0.0f };
     room.push_back(topWall);
 
-    Ball3d ball { Vector3 { 0.0f, 5.0f, 0.0f }, Vector3 { 0.0f, -0.05f, 0.0f } };
+    Wall leftWall { { -5.0f, 5.0f, 0.0f }, 90.0f, 90.0f };
+    room.push_back(leftWall);
+    Wall rightWall { { 5.0f, 5.0f, 0.0f }, 90.0f, -90.0f };
+    room.push_back(rightWall);    
+
+
+    Ball3d ball { Vector3 { 0.0f, 5.0f, 0.0f }, Vector3 { -0.1f, 0.0f, 0.0f } };
 
     DisableCursor();                    // Limit cursor to relative movement inside the window
 
@@ -129,10 +153,10 @@ int main() {
         UpdateCamera(&camera, CAMERA_FREE);
 
         for (Wall wall : room) {
-            std::cout << wall.distanceToWall(ball.position) << "    ";
+            // std::cout << wall.distanceToWall(ball.position) << "    ";
             ball.handleWallCollision(wall);
         }
-        std::cout << std::endl;
+        // std::cout << std::endl;
         ball.updatePosition();
 
         if (IsKeyPressed('Z')) camera.target = Vector3 { 0.0f, 0.0f, 0.0f };
