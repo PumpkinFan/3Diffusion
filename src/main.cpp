@@ -6,6 +6,8 @@
 #include "rlgl.h"
 
 const float DT = 1;
+const Color INNER_WALL_COLOR = { 0, 0, 0, 100 };
+const Color OUTER_WALL_COLOR = { 255, 255, 255, 255 };
 
 // The idea 
 // Define a `Wall` object
@@ -50,7 +52,12 @@ struct Wall {
         rlTranslatef(centerPosition.x, centerPosition.y, centerPosition.z);
         rlRotatef(yAxisRotation, 0.0f, 1.0f, 0.0f);
         rlRotatef(xAxisRotation, 1.0f, 0.0f, 0.0f);
-        DrawPlane( { 0.0f, 0.0f, 0.0f }, size, BLACK);
+        // Draw wireframe like borders to make adjacent walls easier to see
+        DrawLine3D( { -size.x / 2, 0.0f, size.y / 2 }, { size.x / 2, 0.0f, size.y / 2 }, BLACK );
+        DrawLine3D( { -size.x / 2, 0.0f, -size.y / 2 }, { size.x / 2, 0.0f, -size.y / 2 }, BLACK );
+        DrawLine3D( { size.x / 2, 0.0f, -size.y / 2 }, { size.x / 2, 0.0f, size.y / 2 }, BLACK );
+        DrawLine3D( { -size.x / 2, 0.0f, -size.y / 2 }, { -size.x / 2, 0.0f, size.y / 2 }, BLACK );
+        DrawPlane( { 0.0f, 0.0f, 0.0f }, size, INNER_WALL_COLOR );
         rlPopMatrix();
 
         // Draw back side of the wall
@@ -60,7 +67,7 @@ struct Wall {
         rlRotatef(180.0f, _inplaneVector.x, _inplaneVector.y, _inplaneVector.z);
         rlRotatef(yAxisRotation, 0.0f, 1.0f, 0.0f);
         rlRotatef(xAxisRotation, 1.0f, 0.0f, 0.0f);
-        DrawPlane(Vector3 { 0.0f, 0.0f, 0.0f }, size, Color { 125, 125, 125, 225 });
+        // DrawPlane(Vector3 { 0.0f, 0.0f, 0.0f }, size, OUTER_WALL_COLOR );
         rlPopMatrix();
     }
     
@@ -71,7 +78,7 @@ struct Ball3d {
     Vector3 initialVelocity;
     Vector3 pastPosition = Vector3Subtract(position, Vector3Scale(initialVelocity, DT));
     Vector3 acceleration = { 0.0f, 0.0f, 0.0f };
-    float radius = 0.5f;
+    float radius = 1.0f;
     int mass = 1;
     Color color = BLUE;
 
@@ -91,7 +98,6 @@ struct Ball3d {
 
             // We can do this to get the normal component because the normalVector is a unit vector
             float normalVelocityMagnitude = Vector3DotProduct(velocity, wall.normalVector());
-            std::cout << wall.normalVector().x << " " << wall.normalVector().y << " " << wall.normalVector().z << std::endl;
             Vector3 normalVelocity = Vector3Scale(wall.normalVector(), normalVelocityMagnitude);
 
             // we can reverse the velocity in the normal direction by subtracting two times its component in that direction
@@ -106,7 +112,45 @@ struct Ball3d {
     }
 };
 
+void handleBallCollision(Ball3d &ball1, Ball3d &ball2) {
+    float distance = Vector3Distance(ball1.position, ball2.position);
+    if (distance > (ball1.radius + ball2.radius)) {
+        return;  // No collision
+    }
 
+    Vector3 velocity1 = ball1.getVelocity();
+    Vector3 velocity2 = ball2.getVelocity();
+
+    // Find unit normal vector
+    Vector3 normalVector = Vector3Subtract(ball1.position, ball2.position);  // points towards ball1
+    Vector3 unitNormal = Vector3Scale(normalVector, 1.0f / distance);
+
+    // Project velocities onto normal direction
+    float normalVelocity1 = Vector3DotProduct(unitNormal, velocity1);
+    float normalVelocity2 = Vector3DotProduct(unitNormal, velocity2);
+
+    // Perform 1D elastic collision on normal components
+    float massSum = ball1.mass + ball2.mass;
+    float newNormalVelocity1 = (normalVelocity1 * (ball1.mass - ball2.mass) + 2 * ball2.mass * normalVelocity2) / massSum;
+    float newNormalVelocity2 = (normalVelocity2 * (ball2.mass - ball1.mass) + 2 * ball1.mass * normalVelocity1) / massSum;
+
+    // Create new velocity vectors (subtract the current normal velocity and add the new velocity)
+    Vector3 newVelocity1 = Vector3Add(velocity1, Vector3Scale(unitNormal, newNormalVelocity1 - normalVelocity1));
+    Vector3 newVelocity2 = Vector3Add(velocity2, Vector3Scale(unitNormal, newNormalVelocity2 - normalVelocity2));
+
+    // Resolve overlap after collision
+    float radiusSum = ball1.radius + ball2.radius;
+    float distanceAfterCollision = Vector3Distance(Vector3Add(ball1.position, Vector3Scale(newVelocity1, DT)),
+                                                   Vector3Add(ball2.position, Vector3Scale(newVelocity2, DT)));
+    float overlapAfterCollision = radiusSum - distanceAfterCollision;
+    if (overlapAfterCollision > 0) {
+        ball1.position = Vector3Add(ball1.position, Vector3Scale(unitNormal, overlapAfterCollision * (ball1.radius / radiusSum)));
+        ball2.position = Vector3Add(ball2.position, Vector3Scale(unitNormal, -1.0f * overlapAfterCollision * (ball2.radius / radiusSum)));
+    }
+
+    ball1.pastPosition = Vector3Subtract(ball1.position, Vector3Scale(newVelocity1, DT));
+    ball2.pastPosition = Vector3Subtract(ball2.position, Vector3Scale(newVelocity2, DT));
+} 
 
 
 int main() {
@@ -128,17 +172,27 @@ int main() {
 
     std::vector<Wall> room;
     Wall bottomWall { { 0.0f, 0.0f, 0.0f }, 0.0f, 0.0f };
-    room.push_back(bottomWall);    
+    room.push_back(bottomWall);
     Wall topWall { { 0.0f, 10.0f, 0.0f }, 180.0f, 0.0f };
     room.push_back(topWall);
-
     Wall leftWall { { -5.0f, 5.0f, 0.0f }, 90.0f, 90.0f };
     room.push_back(leftWall);
     Wall rightWall { { 5.0f, 5.0f, 0.0f }, 90.0f, -90.0f };
-    room.push_back(rightWall);    
+    room.push_back(rightWall);
+    Wall southWall { { 0.0f, 5.0f, -5.0f }, 90.0f, 0.0f };
+    room.push_back(southWall);
+    Wall northWall { { 0.0f, 5.0f, 5.0f }, 270.0f, 0.0f };
+    room.push_back(northWall);
 
 
-    Ball3d ball { Vector3 { 0.0f, 5.0f, 0.0f }, Vector3 { -0.1f, 0.0f, 0.0f } };
+    std::vector<Ball3d> balls;
+    Ball3d ball1 { Vector3 { -2.0f, 5.0f, 0.0f }, Vector3 { 0.02f, 0.0f, 0.0f } };
+    balls.push_back(ball1);
+    Ball3d ball2 { Vector3 { 2.0f, 5.0f, 0.0f }, Vector3 { -0.02f, 0.0f, 0.0f } };
+    balls.push_back(ball2);
+    Ball3d ball3 { { 0.0f, 1.5f, 1.5f }, { 0.2f, 0.33f, -0.1f } };
+    ball3.color = RED;
+    balls.push_back(ball3);
 
     DisableCursor();                    // Limit cursor to relative movement inside the window
 
@@ -152,12 +206,16 @@ int main() {
         //----------------------------------------------------------------------------------
         UpdateCamera(&camera, CAMERA_FREE);
 
-        for (Wall wall : room) {
-            // std::cout << wall.distanceToWall(ball.position) << "    ";
-            ball.handleWallCollision(wall);
+
+        for (int i = 0; i < balls.size(); ++i) {
+            for (Wall wall : room) {
+                balls[i].handleWallCollision(wall);
+            }
+            for (int j = i + 1; j < balls.size(); ++j) {
+                handleBallCollision(balls[i], balls[j]);
+            }
+            balls[i].updatePosition();
         }
-        // std::cout << std::endl;
-        ball.updatePosition();
 
         if (IsKeyPressed('Z')) camera.target = Vector3 { 0.0f, 0.0f, 0.0f };
         //----------------------------------------------------------------------------------
@@ -170,12 +228,15 @@ int main() {
 
             BeginMode3D(camera);
      
-                ball.draw();
+                for (Ball3d ball : balls) {
+                    ball.draw();
+                }
                 for (Wall wall : room) {
                     wall.draw();
                 }
 
-                DrawSphere({ 0.0f, 0.0f, 0.0f }, 0.1f, BLUE);
+                // Draw the origin (optional)
+                // DrawSphere({ 0.0f, 0.0f, 0.0f }, 0.1f, BLUE);
 
             EndMode3D();
 
