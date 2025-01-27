@@ -5,6 +5,8 @@
 #include "raymath.h"
 #include "rlgl.h"
 #include <vector>
+#include <cmath>
+#include <random>
 
 const float DT = 1;
 
@@ -50,5 +52,7 @@ void handleBallCollision(Ball3d &ball1, Ball3d &ball2);
 // create a cubic room with the bottom wall centered at the origin
 std::vector<Wall> cubeRoom(float wallLength);
 std::vector<Ball3d> threeBallsBouncing();
+std::vector<Ball3d> brownianMotion();
+std::vector<Ball3d> generateBalls(Vector3 roomDimensions, float ballRadius, float velocityMagnitude, int numBalls);
 
 #endif // OBJS_H

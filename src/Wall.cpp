@@ -1,5 +1,4 @@
 #include "Objects.h"
-#include <cmath>
 
 void Wall::set_xAxisRotation(float newXRotation) {
     xAxisRotation = newXRotation;

@@ -5,6 +5,12 @@
 
 #include "Objects.h"
 
+// TODO:
+// Refactor DT to use GetFrameTime
+// Refactor brownianMotion function
+// Add path tracking for large particle
+// Test build system on another pc
+
 int main() {
 
     // Initialization
@@ -22,9 +28,14 @@ int main() {
     camera.fovy = 90.0f;                                // Camera field-of-view Y
     camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
 
-    std::vector<Wall> room = cubeRoom(10.0f);
+    std::vector<Wall> room = cubeRoom(20.0f);
 
-    std::vector<Ball3d> balls = threeBallsBouncing();
+    std::vector<Ball3d> balls = generateBalls(Vector3 {20.0f, 20.0f, 20.0f}, 0.5f, 0.3, 300);
+    Ball3d largeBall = {{0.0f, 10.0f, 0.0f}, {0.0f, 0.0f, 0.0f}};
+    largeBall.radius = 2.0f;
+    largeBall.color = RED;
+    largeBall.mass = 64;
+    balls.push_back(largeBall);
 
     DisableCursor();                    // Limit cursor to relative movement inside the window
 

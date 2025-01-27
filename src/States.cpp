@@ -5,17 +5,26 @@
 std::vector<Wall> cubeRoom(float wallLength) {
     std::vector<Wall> room;
     Wall bottomWall { { 0.0f, 0.0f, 0.0f }, 0.0f, 0.0f };
+    bottomWall.size = { wallLength, wallLength };
     room.push_back(bottomWall);
     Wall topWall { { 0.0f, wallLength, 0.0f }, 180.0f, 0.0f };
+    topWall.size = { wallLength, wallLength };
     room.push_back(topWall);
+
     Wall leftWall { { -wallLength / 2, wallLength / 2, 0.0f }, 90.0f, 90.0f };
+    leftWall.size = { wallLength, wallLength };
     room.push_back(leftWall);
     Wall rightWall { { wallLength / 2, wallLength / 2, 0.0f }, 90.0f, -90.0f };
+    rightWall.size = { wallLength, wallLength };
     room.push_back(rightWall);
+    
     Wall southWall { { 0.0f, wallLength / 2, -wallLength / 2 }, 90.0f, 0.0f };
+    southWall.size = { wallLength, wallLength };
     room.push_back(southWall);
     Wall northWall { { 0.0f, wallLength / 2, wallLength / 2 }, 270.0f, 0.0f };
+    northWall.size = { wallLength, wallLength };
     room.push_back(northWall);
+    
     return room;
 }
 
@@ -29,5 +38,94 @@ std::vector<Ball3d> threeBallsBouncing() {
     ball3.color = RED;
     ball3.mass = 10;
     balls.push_back(ball3);
+    return balls;
+}
+
+
+// Return vector containing largeBall and copies of smallBall to fill the room
+// smallBall copies will have their velocity vector randomly rotated and color slightly randomized
+std::vector<Ball3d> brownianMotion(Vector3 roomDimensions, Ball3d &smallBall, Ball3d &largeBall, int nSmallBalls) {
+    std::vector<Ball3d> balls;
+
+    balls.push_back(largeBall);
+
+    int ballsPerRow = std::cbrt(nSmallBalls);
+    // Calculate spacing between balls
+    float spacingX = (roomDimensions.x - 2 * smallBall.radius) / ballsPerRow;
+    float spacingY = (roomDimensions.y - 2 * smallBall.radius) / ballsPerRow;
+    float spacingZ = (roomDimensions.z - 2 * smallBall.radius) / ballsPerRow;
+
+    // Random number generator for velocity direction and color modification
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+    std::uniform_int_distribution<int> redDist(-10, 10);
+    std::uniform_int_distribution<int> greenDist(-10, 10);
+    std::uniform_int_distribution<int> blueDist(-10, 10);
+
+    for (int i = 0; i < ballsPerRow; ++i) {
+        for (int j = 0; j < ballsPerRow; ++j) {
+            for (int k = 0; k < ballsPerRow; ++k) {
+                
+            }
+        }
+    }
+    return balls;
+}
+
+std::vector<Ball3d> generateBalls(Vector3 roomDimensions, float ballRadius, float velocityMagnitude, int numBalls) {
+    std::vector<Ball3d> balls;
+
+    // Calculate spacing between balls
+    float spacingX = (roomDimensions.x - 2 * ballRadius) / std::cbrt(numBalls);
+    float spacingY = (roomDimensions.y - 2 * ballRadius) / std::cbrt(numBalls);
+    float spacingZ = (roomDimensions.z - 2 * ballRadius) / std::cbrt(numBalls);
+
+    int ballsPerRow = std::cbrt(numBalls);
+
+    // Random number generator for velocity direction
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+    std::uniform_int_distribution<int> redDist(0, 50);
+    std::uniform_int_distribution<int> greenDist(0, 50);
+    std::uniform_int_distribution<int> blueDist(100, 255);
+
+    for (int i = 0; i < ballsPerRow; ++i) {
+        for (int j = 0; j < ballsPerRow; ++j) {
+            for (int k = 0; k < ballsPerRow; ++k) {
+                if (balls.size() >= numBalls) break;
+
+                // Calculate ball position
+                Vector3 position = {
+                    -roomDimensions.x / 2 + ballRadius + i * spacingX,
+                    ballRadius + j * spacingY,
+                    -roomDimensions.z / 2 + ballRadius + k * spacingZ
+                };
+
+                // Generate a random velocity direction
+                Vector3 randomDirection = { dist(gen), dist(gen), dist(gen) };
+                randomDirection = Vector3Normalize(randomDirection);
+
+                // Assign velocity based on magnitude
+                Vector3 initialVelocity = Vector3Scale(randomDirection, velocityMagnitude);
+
+                // Create and add the ball
+                Ball3d ball;
+                ball.position = position;
+                ball.initialVelocity = initialVelocity;
+                ball.pastPosition = Vector3Subtract(position, Vector3Scale(initialVelocity, DT));
+                ball.radius = ballRadius;
+
+                ball.color = Color { static_cast<unsigned char>(redDist(gen)), 
+                                     static_cast<unsigned char>(greenDist(gen)), 
+                                     static_cast<unsigned char>(blueDist(gen)), 
+                                     255 };
+
+                balls.push_back(ball);
+            }
+        }
+    }
+
     return balls;
 }
