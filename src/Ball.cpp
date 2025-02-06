@@ -6,6 +6,10 @@ Vector3 Ball3d::getVelocity() {
     return Vector3Subtract(position, pastPosition);
 }
 
+void Ball3d::setVelocity(Vector3 newVelocity) {
+    pastPosition = Vector3Subtract(position, Vector3Scale(newVelocity, DT));
+}
+
 void Ball3d::updatePosition() {
     Vector3 velocity = getVelocity();
     pastPosition = position;

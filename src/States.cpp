@@ -41,7 +41,6 @@ std::vector<Ball3d> threeBallsBouncing() {
     return balls;
 }
 
-
 // Return vector containing largeBall and copies of smallBall to fill the room
 // smallBall copies will have their velocity vector randomly rotated and color slightly randomized
 std::vector<Ball3d> brownianMotion(Vector3 roomDimensions, Ball3d &smallBall, Ball3d &largeBall, int nSmallBalls) {
@@ -49,11 +48,12 @@ std::vector<Ball3d> brownianMotion(Vector3 roomDimensions, Ball3d &smallBall, Ba
 
     balls.push_back(largeBall);
 
-    int ballsPerRow = std::cbrt(nSmallBalls);
     // Calculate spacing between balls
-    float spacingX = (roomDimensions.x - 2 * smallBall.radius) / ballsPerRow;
-    float spacingY = (roomDimensions.y - 2 * smallBall.radius) / ballsPerRow;
-    float spacingZ = (roomDimensions.z - 2 * smallBall.radius) / ballsPerRow;
+    float spacingX = (roomDimensions.x - 2 * smallBall.radius) / std::cbrt(nSmallBalls);
+    float spacingY = (roomDimensions.y - 2 * smallBall.radius) / std::cbrt(nSmallBalls);
+    float spacingZ = (roomDimensions.z - 2 * smallBall.radius) / std::cbrt(nSmallBalls);
+    
+    int ballsPerRow = std::cbrt(nSmallBalls);
 
     // Random number generator for velocity direction and color modification
     std::random_device rd;
@@ -66,7 +66,35 @@ std::vector<Ball3d> brownianMotion(Vector3 roomDimensions, Ball3d &smallBall, Ba
     for (int i = 0; i < ballsPerRow; ++i) {
         for (int j = 0; j < ballsPerRow; ++j) {
             for (int k = 0; k < ballsPerRow; ++k) {
+                if (balls.size() >= nSmallBalls) {break;}
+
+                // Calculate ball position
+                Vector3 ballPosition = {
+                    -roomDimensions.x / 2 + smallBall.radius + i * spacingX,
+                    smallBall.radius + j * spacingY,
+                    -roomDimensions.z / 2 + smallBall.radius + k * spacingZ
+                };
+
+                std::cout << ballPosition.x << ", " << ballPosition.y  << ", " << ballPosition.z << "\n";
                 
+                // If it's inside the largeBall don't add it
+                if (Vector3Distance(ballPosition, largeBall.position) < (smallBall.radius + largeBall.radius)) {
+                    continue;
+                }
+
+                // Randomize the velocity
+                Vector3 randomDirection = Vector3Normalize({ dist(gen), dist(gen), dist(gen) });
+                float velocityMagnitude = Vector3Length(smallBall.getVelocity());
+                Vector3 ballVelocity = Vector3Scale(randomDirection, velocityMagnitude);
+
+                // Create the small ball copy
+                Ball3d ball {ballPosition, ballVelocity};
+                ball.radius = smallBall.radius;
+                ball.color = smallBall.color;
+                ball.mass = smallBall.mass;
+
+                balls.push_back(ball);
+
             }
         }
     }
@@ -103,6 +131,8 @@ std::vector<Ball3d> generateBalls(Vector3 roomDimensions, float ballRadius, floa
                     -roomDimensions.z / 2 + ballRadius + k * spacingZ
                 };
 
+                std::cout << position.x << ", " << position.y  << ", " << position.z << "\n";
+
                 // Generate a random velocity direction
                 Vector3 randomDirection = { dist(gen), dist(gen), dist(gen) };
                 randomDirection = Vector3Normalize(randomDirection);
@@ -114,7 +144,7 @@ std::vector<Ball3d> generateBalls(Vector3 roomDimensions, float ballRadius, floa
                 Ball3d ball;
                 ball.position = position;
                 ball.initialVelocity = initialVelocity;
-                ball.pastPosition = Vector3Subtract(position, Vector3Scale(initialVelocity, DT));
+                ball.setVelocity(initialVelocity);
                 ball.radius = ballRadius;
 
                 ball.color = Color { static_cast<unsigned char>(redDist(gen)), 
