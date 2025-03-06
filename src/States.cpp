@@ -74,8 +74,6 @@ std::vector<Ball3d> brownianMotion(Vector3 roomDimensions, Ball3d &smallBall, Ba
                     smallBall.radius + j * spacingY,
                     -roomDimensions.z / 2 + smallBall.radius + k * spacingZ
                 };
-
-                std::cout << ballPosition.x << ", " << ballPosition.y  << ", " << ballPosition.z << "\n";
                 
                 // If it's inside the largeBall don't add it
                 if (Vector3Distance(ballPosition, largeBall.position) < (smallBall.radius + largeBall.radius)) {

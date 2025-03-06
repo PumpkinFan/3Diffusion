@@ -3,18 +3,24 @@
 #include "raylib.h"
 #include "raymath.h"
 
+#include <cstring>
+
 #include "Objects.h"
 
 // TODO:
-// Refactor DT to use GetFrameTime
-// Refactor brownianMotion function
+// Refactor DT to use GetFrameTime --> should probaby use accumulator to accurately compute simulatin w.r.t. real time
 // Add path tracking for large particle
+// Use grid for more efficient collision detection
+
+void updatePhysics(float dt) {
+    
+}
 
 int main() {
 
     // Initialization
     //--------------------------------------------------------------------------------------
-    const int screenWidth = 1200;
+    const int screenWidth = 1280;
     const int screenHeight = 720;
 
     InitWindow(screenWidth, screenHeight, "3Diffusion");
@@ -98,6 +104,11 @@ int main() {
             DrawText("- Mouse Wheel to Zoom in-out", 40, 40, 10, DARKGRAY);
             DrawText("- Mouse Wheel Pressed to Pan", 40, 60, 10, DARKGRAY);
             DrawText("- Z to zoom to (0, 0, 0)", 40, 80, 10, DARKGRAY);
+
+            int fps = GetFPS();
+            char fpsString[10];
+            itoa(fps, fpsString, 10);
+            DrawText(fpsString, 20, 110, 50, LIME);
 
         EndDrawing();
         //----------------------------------------------------------------------------------
