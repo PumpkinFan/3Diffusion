@@ -9,9 +9,7 @@
 #include <random>
 #include <iostream>
 
-
-// float deltaTime();
-const float DT = 1;
+const float DT = 1.0;
 
 // The Wall object is represented by a subset of the XZ plane that is rotated (around the x-axis then y-axis) and translated
 struct Wall {

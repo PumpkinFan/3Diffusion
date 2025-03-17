@@ -1,6 +1,6 @@
 #include "Objects.h"
 
-extern float DT;
+extern const float DT;
 
 Vector3 Ball3d::getVelocity() {
     return Vector3Subtract(position, pastPosition);

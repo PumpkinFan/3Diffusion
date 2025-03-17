@@ -12,9 +12,6 @@
 // Add path tracking for large particle
 // Use grid for more efficient collision detection
 
-void updatePhysics(float dt) {
-    
-}
 
 int main() {
 
