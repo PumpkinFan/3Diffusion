@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <string>
 #include "raylib.h"
 #include "raymath.h"
 
@@ -103,9 +104,8 @@ int main() {
             DrawText("- Z to zoom to (0, 0, 0)", 40, 80, 10, DARKGRAY);
 
             int fps = GetFPS();
-            char fpsString[10];
-            itoa(fps, fpsString, 10);
-            DrawText(fpsString, 20, 110, 50, LIME);
+            std::string fpsString = std::to_string(fps);
+            DrawText(fpsString.c_str(), 20, 110, 50, LIME);
 
         EndDrawing();
         //----------------------------------------------------------------------------------
