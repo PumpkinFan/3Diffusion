@@ -8,6 +8,8 @@
 
 #include "Objects.h"
 
+const float updateDelta = 1.0f / 30.0f;  // update the simulation every 30th of a second
+
 // TODO:
 // Refactor DT to use GetFrameTime --> should probaby use accumulator to accurately compute simulatin w.r.t. real time
 // Add path tracking for large particle
@@ -45,14 +47,18 @@ int main() {
 
 
     Vector3 roomDimensions = { 20.0f, 20.0f, 20.0f };
-    std::vector<Ball3d> balls = brownianMotion(roomDimensions, smallBall, largeBall, 300);
+    // std::vector<Ball3d> balls = brownianMotion(roomDimensions, smallBall, largeBall, 300);
     // std::vector<Ball3d> balls = generateBalls(roomDimensions, 0.5f, 0.3f, 300);
+    std::vector<Ball3d> balls = threeBallsBouncing();
     // balls.push_back(largeBall);
 
     DisableCursor();                    // Limit cursor to relative movement inside the window
 
     SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
+
+    // Use accumulator to track time change between frames and only update physics after updateDelta amount of time
+    float timeAccumulator = 0.0f;
 
     // Main game loop
     while (!WindowShouldClose())        // Detect window close button or ESC key
@@ -61,16 +67,22 @@ int main() {
         //----------------------------------------------------------------------------------
         UpdateCamera(&camera, CAMERA_FREE);
 
+        timeAccumulator += GetFrameTime();
 
-        for (int i = 0; i < balls.size(); ++i) {
-            for (Wall wall : room) {
-                balls[i].handleWallCollision(wall);
+        while (timeAccumulator >= updateDelta) {
+            // Update physics 
+            for (int i = 0; i < balls.size(); ++i) {
+                for (Wall wall : room) {
+                    balls[i].handleWallCollision(wall);
+                }
+                for (int j = i + 1; j < balls.size(); ++j) {
+                    handleBallCollision(balls[i], balls[j]);
+                }
+                balls[i].updatePosition();
             }
-            for (int j = i + 1; j < balls.size(); ++j) {
-                handleBallCollision(balls[i], balls[j]);
-            }
-            balls[i].updatePosition();
+            timeAccumulator -= updateDelta;
         }
+        std::cout << timeAccumulator << std::endl;
 
         if (IsKeyPressed('Z')) camera.target = Vector3 { 0.0f, 0.0f, 0.0f };
         //----------------------------------------------------------------------------------

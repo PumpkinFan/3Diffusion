@@ -9,7 +9,7 @@
 #include <random>
 #include <iostream>
 
-const float DT = 1.0;
+const float DT = 1.0f;
 
 // The Wall object is represented by a subset of the XZ plane that is rotated (around the x-axis then y-axis) and translated
 struct Wall {
