@@ -47,11 +47,12 @@ int main() {
     largeBall.radius = 2.0f;
     largeBall.color = RED;
     largeBall.mass = 64;
-    largeBall.trackPositions = true;
+    // largeBall.trackPositions = true;
 
 
     Vector3 roomDimensions = { roomSize, roomSize, roomSize };
     std::vector<Ball3d> balls = brownianMotion(roomDimensions, smallBall, largeBall, 300);
+    balls[0].trackPositions = true;
     // std::vector<Ball3d> balls = generateBalls(roomDimensions, 0.5f, 0.3f, 300);
     // std::vector<Ball3d> balls = threeBallsBouncing();
     // balls.push_back(largeBall);
@@ -138,10 +139,11 @@ int main() {
                 for (Wall wall : room) {
                     wall.draw();
                 }
-                for (int i = 0; i < largeBall.previousPositions.size(); ++i) {
-                    if (i < largeBall.previousPositions.size() - 1) {  // Exclude most recent position
-                        std::cout << largeBall.previousPositions[i].x  << ", " << largeBall.previousPositions[i].y << ", " << largeBall.previousPositions[i].z << std::endl;
-                        DrawLine3D(largeBall.previousPositions[i], largeBall.previousPositions[i+1], BLACK);
+                std::vector<Vector3> largeBallPositions = balls[0].previousPositions;
+                for (int i = 0; i < largeBallPositions.size(); ++i) {
+                    if (i < largeBallPositions.size() - 1) {  // Exclude most recent position
+                        // std::cout << largeBall.previousPositions[i].x  << ", " << largeBall.previousPositions[i].y << ", " << largeBall.previousPositions[i].z << std::endl;
+                        DrawLine3D(largeBallPositions[i], largeBallPositions[i+1], BLACK);
                     }
                 }
 
