@@ -21,12 +21,14 @@ int main() {
     //--------------------------------------------------------------------------------------
     const int screenWidth = 1280;
     const int screenHeight = 720;
+    bool simulationPaused = false;
+    bool drawFrameRate = false;
 
     InitWindow(screenWidth, screenHeight, "3Diffusion");
 
     // Define the camera to look into our 3d world
     Camera3D camera = { 0 };
-    camera.position = Vector3 { 10.0f, 10.0f, 10.0f }; // Camera position
+    camera.position = Vector3 { 20.0f, 20.0f, 20.0f }; // Camera position
     camera.target = Vector3 { 0.0f, 0.0f, 0.0f };      // Camera looking at point
     camera.up = Vector3 { 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
     camera.fovy = 90.0f;                                // Camera field-of-view Y
@@ -45,6 +47,7 @@ int main() {
     largeBall.radius = 2.0f;
     largeBall.color = RED;
     largeBall.mass = 64;
+    largeBall.trackPositions = true;
 
 
     Vector3 roomDimensions = { roomSize, roomSize, roomSize };
@@ -71,45 +74,55 @@ int main() {
         //----------------------------------------------------------------------------------
         UpdateCamera(&camera, CAMERA_FREE);
 
-        timeAccumulator += GetFrameTime();
+        if (!simulationPaused) {
+            timeAccumulator += GetFrameTime();
 
-        while (timeAccumulator >= updateDelta) {
-            // Update physics
-            for (int i = 0; i < balls.size(); ++i) {
-                for (Wall wall : room) {
-                    balls[i].handleWallCollision(wall);
+            while (timeAccumulator >= updateDelta) {
+                // Update physics
+                for (int i = 0; i < balls.size(); ++i) {
+                    for (Wall wall : room) {
+                        balls[i].handleWallCollision(wall);
+                    }
+                    for (int j = i + 1; j < balls.size(); ++j) {
+                        handleBallCollision(balls[i], balls[j]);
+                    }
+                    balls[i].updatePosition();
                 }
-                for (int j = i + 1; j < balls.size(); ++j) {
-                    handleBallCollision(balls[i], balls[j]);
-                }
-                balls[i].updatePosition();
+                // grid.clearCells();
+                // for (int i = 0; i < balls.size(); ++i) {
+                //     for (Wall wall : room) {
+                //         balls[i].handleWallCollision(wall);
+                //     }
+                //     grid.addBallToGrid(balls[i], i);
+                //     for (int j = i + 1; j < balls.size(); ++j) {
+                //         handleBallCollision(balls[i], balls[j]);
+                //     }
+                //     balls[i].updatePosition();
+                // }
+                // for (GridCell &cell : grid.cells) {
+                //     for (int i = 0; i < cell.ballIndices.size(); ++i) {
+                //         int ballIndex = cell.ballIndices[i];
+                //         for (int j = i + 1; j < cell.ballIndices.size(); ++j) {
+                //             int otherBallIndex = cell.ballIndices[j];
+                //             handleBallCollision(balls[ballIndex], balls[otherBallIndex]);
+                //         }
+                //         balls[ballIndex].updatePosition();
+                //     }
+                // }
+                timeAccumulator -= updateDelta;
             }
-            // grid.clearCells();
-            // for (int i = 0; i < balls.size(); ++i) {
-            //     for (Wall wall : room) {
-            //         balls[i].handleWallCollision(wall);
-            //     }
-            //     grid.addBallToGrid(balls[i], i);
-            //     for (int j = i + 1; j < balls.size(); ++j) {
-            //         handleBallCollision(balls[i], balls[j]);
-            //     }
-            //     balls[i].updatePosition();
-            // }
-            // for (GridCell& cell : grid.cells) {
-            //     for (int i = 0; i < cell.ballIndices.size(); ++i) {
-            //         int ballIndex = cell.ballIndices[i];
-            //         for (int j = i + 1; j < cell.ballIndices.size(); ++j) {
-            //             int otherBallIndex = cell.ballIndices[j];
-            //             handleBallCollision(balls[ballIndex], balls[otherBallIndex]);
-            //         }
-            //         balls[ballIndex].updatePosition();
-            //     }
-            // }
-            timeAccumulator -= updateDelta;
         }
 
-        if (IsKeyPressed('Z')) camera.target = Vector3 { 0.0f, 0.0f, 0.0f };
+        // User inputs
         //----------------------------------------------------------------------------------
+        if (IsKeyPressed('Z')) camera.target = Vector3 { 0.0f, 0.0f, 0.0f };
+        if (IsKeyPressed('X')) simulationPaused = !simulationPaused;
+        if (IsKeyPressed(KEY_F2)) drawFrameRate = !drawFrameRate;
+
+        // reset the simulation
+        if (IsKeyPressed('R') && IsKeyDown(KEY_LEFT_ALT)) {
+            balls = brownianMotion(roomDimensions, smallBall, largeBall, 300);
+        }
 
         // Draw
         //----------------------------------------------------------------------------------
@@ -125,23 +138,33 @@ int main() {
                 for (Wall wall : room) {
                     wall.draw();
                 }
+                for (int i = 0; i < largeBall.previousPositions.size(); ++i) {
+                    if (i < largeBall.previousPositions.size() - 1) {  // Exclude most recent position
+                        std::cout << largeBall.previousPositions[i].x  << ", " << largeBall.previousPositions[i].y << ", " << largeBall.previousPositions[i].z << std::endl;
+                        DrawLine3D(largeBall.previousPositions[i], largeBall.previousPositions[i+1], BLACK);
+                    }
+                }
 
                 // Draw the origin (optional)
                 // DrawSphere({ 0.0f, 0.0f, 0.0f }, 0.1f, LIME);
 
             EndMode3D();
 
-            DrawRectangle( 10, 10, 320, 93, Fade(SKYBLUE, 0.5f));
-            DrawRectangleLines( 10, 10, 320, 93, BLUE);
+            DrawRectangle( 10, 10, 320, 133, Fade(SKYBLUE, 0.5f));
+            DrawRectangleLines( 10, 10, 320, 133, BLUE);
 
-            DrawText("Free camera default controls:", 20, 20, 10, BLACK);
-            DrawText("- Mouse Wheel to Zoom in-out", 40, 40, 10, DARKGRAY);
-            DrawText("- Mouse Wheel Pressed to Pan", 40, 60, 10, DARKGRAY);
-            DrawText("- Z to zoom to (0, 0, 0)", 40, 80, 10, DARKGRAY);
+            DrawText("Controls:", 20, 20, 10, BLACK);
+            DrawText("- WASD + SPACE to move around the camera", 40, 40, 10, DARKGRAY);
+            DrawText("- Mouse Wheel to Zoom in-out", 40, 60, 10, DARKGRAY);
+            DrawText("- Mouse Wheel Pressed to Pan", 40, 80, 10, DARKGRAY);
+            DrawText("- Z to zoom to (0, 0, 0)", 40, 100, 10, DARKGRAY);
+            DrawText("- X to pause/resume simulation", 40, 120, 10, DARKGRAY);
 
-            int fps = GetFPS();
-            std::string fpsString = std::to_string(fps);
-            DrawText(fpsString.c_str(), 20, 110, 50, LIME);
+            if (drawFrameRate) {
+                int fps = GetFPS();
+                std::string fpsString = std::to_string(fps);
+                DrawText(fpsString.c_str(), screenWidth - 100, 20, 50, LIME);
+            }
 
         EndDrawing();
         //----------------------------------------------------------------------------------

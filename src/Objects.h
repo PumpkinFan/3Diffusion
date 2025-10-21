@@ -39,11 +39,13 @@ struct Ball3d {
     float radius = 1.0f;
     int mass = 1;
     Color color = BLUE;
+    bool trackPositions = false;
+    std::vector<Vector3> previousPositions = {};
 
     Vector3 getVelocity();
     void setVelocity(Vector3 newVelocity);
     void updatePosition();
-    void handleWallCollision(Wall wall);
+    void handleWallCollision(Wall &wall);
 
     void draw();
 };

@@ -129,7 +129,7 @@ std::vector<Ball3d> generateBalls(Vector3 roomDimensions, float ballRadius, floa
                     -roomDimensions.z / 2 + ballRadius + k * spacingZ
                 };
 
-                std::cout << position.x << ", " << position.y  << ", " << position.z << "\n";
+                // std::cout << position.x << ", " << position.y  << ", " << position.z << "\n";
 
                 // Generate a random velocity direction
                 Vector3 randomDirection = { dist(gen), dist(gen), dist(gen) };

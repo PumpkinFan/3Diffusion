@@ -16,7 +16,7 @@ void Ball3d::updatePosition() {
     position = Vector3Add(Vector3Add(position, Vector3Scale(velocity, DT)), Vector3Scale(acceleration, DT * DT));
 }
 
-void Ball3d::handleWallCollision(Wall wall) {
+void Ball3d::handleWallCollision(Wall &wall) {
     if (wall.distanceToWall(position) <= radius) {
         Vector3 velocity = getVelocity();
 
@@ -36,6 +36,10 @@ void Ball3d::handleWallCollision(Wall wall) {
         }
 
         pastPosition = Vector3Subtract(position, Vector3Scale(newVelocity, DT));
+
+        if (trackPositions) {
+            previousPositions.push_back(position);
+        }
     }
 }
 
@@ -81,4 +85,11 @@ void handleBallCollision(Ball3d &ball1, Ball3d &ball2) {
 
     ball1.pastPosition = Vector3Subtract(ball1.position, Vector3Scale(newVelocity1, DT));
     ball2.pastPosition = Vector3Subtract(ball2.position, Vector3Scale(newVelocity2, DT));
+
+    if (ball1.trackPositions) {
+        ball1.previousPositions.push_back(ball1.position);
+    }
+    if (ball2.trackPositions) {
+        ball2.previousPositions.push_back(ball2.position);
+    }
 } 

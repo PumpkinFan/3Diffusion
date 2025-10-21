@@ -22,7 +22,7 @@ struct CollisionGrid {
         return x + y * numberCellsX + z * numberCellsX * numberCellsY;
     }
 
-    void addBallToGrid(Ball3d& ball, int ballIndex) {
+    void addBallToGrid(Ball3d &ball, int ballIndex) {
         Vector3 ballGridPostion = Vector3Subtract(ball.position, startingPosition);
         int cellIndex = getGridIndex(
             floor(ballGridPostion.x / cellSize), 
@@ -33,7 +33,7 @@ struct CollisionGrid {
     }
     
     void clearCells() {
-        for (GridCell& cell : cells) {
+        for (GridCell &cell : cells) {
             cell.clearBalls();
         }
     }
@@ -45,7 +45,7 @@ struct CollisionGrid {
         numberCellsZ(nZ),
         startingPosition(_startingPosition),
         cells(numberCellsX * numberCellsY * numberCellsZ)
-    {std::cout << "Grid size: " << cells.size() << std::endl;}
+    {}
 };
 
 #endif // COLLISION_GRID_H
