@@ -4,15 +4,14 @@
 #include "raylib.h"
 #include "raymath.h"
 
-#include <cstring>
-
 #include "Objects.h"
+#include "CollisionGrid.h"
 
 const float updateDelta = 1.0f / 30.0f;  // update the simulation every 30th of a second
 
 // TODO:
-// Refactor DT to use GetFrameTime --> should probaby use accumulator to accurately compute simulatin w.r.t. real time
 // Add path tracking for large particle
+// Add pausing and resetting simulation
 // Use grid for more efficient collision detection
 
 
@@ -33,7 +32,9 @@ int main() {
     camera.fovy = 90.0f;                                // Camera field-of-view Y
     camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
 
-    std::vector<Wall> room = cubeRoom(20.0f);
+    float roomSize = 20.0f;
+
+    std::vector<Wall> room = cubeRoom(roomSize);
 
     Ball3d smallBall = {{0.0f, 0.0f, 0.0f}, {0.3f, 0.0f, 0.0f}};
     smallBall.radius = 0.5f;
@@ -46,11 +47,14 @@ int main() {
     largeBall.mass = 64;
 
 
-    Vector3 roomDimensions = { 20.0f, 20.0f, 20.0f };
-    // std::vector<Ball3d> balls = brownianMotion(roomDimensions, smallBall, largeBall, 300);
+    Vector3 roomDimensions = { roomSize, roomSize, roomSize };
+    std::vector<Ball3d> balls = brownianMotion(roomDimensions, smallBall, largeBall, 300);
     // std::vector<Ball3d> balls = generateBalls(roomDimensions, 0.5f, 0.3f, 300);
-    std::vector<Ball3d> balls = threeBallsBouncing();
+    // std::vector<Ball3d> balls = threeBallsBouncing();
     // balls.push_back(largeBall);
+
+    // Create grid for more efficient collision detection
+    CollisionGrid grid = { 5.0f, 20, 20, 20, { -0.5f * roomSize, 0.0f, -0.5f * roomSize } };
 
     DisableCursor();                    // Limit cursor to relative movement inside the window
 
@@ -70,7 +74,7 @@ int main() {
         timeAccumulator += GetFrameTime();
 
         while (timeAccumulator >= updateDelta) {
-            // Update physics 
+            // Update physics
             for (int i = 0; i < balls.size(); ++i) {
                 for (Wall wall : room) {
                     balls[i].handleWallCollision(wall);
@@ -80,9 +84,29 @@ int main() {
                 }
                 balls[i].updatePosition();
             }
+            // grid.clearCells();
+            // for (int i = 0; i < balls.size(); ++i) {
+            //     for (Wall wall : room) {
+            //         balls[i].handleWallCollision(wall);
+            //     }
+            //     grid.addBallToGrid(balls[i], i);
+            //     for (int j = i + 1; j < balls.size(); ++j) {
+            //         handleBallCollision(balls[i], balls[j]);
+            //     }
+            //     balls[i].updatePosition();
+            // }
+            // for (GridCell& cell : grid.cells) {
+            //     for (int i = 0; i < cell.ballIndices.size(); ++i) {
+            //         int ballIndex = cell.ballIndices[i];
+            //         for (int j = i + 1; j < cell.ballIndices.size(); ++j) {
+            //             int otherBallIndex = cell.ballIndices[j];
+            //             handleBallCollision(balls[ballIndex], balls[otherBallIndex]);
+            //         }
+            //         balls[ballIndex].updatePosition();
+            //     }
+            // }
             timeAccumulator -= updateDelta;
         }
-        std::cout << timeAccumulator << std::endl;
 
         if (IsKeyPressed('Z')) camera.target = Vector3 { 0.0f, 0.0f, 0.0f };
         //----------------------------------------------------------------------------------
@@ -103,7 +127,7 @@ int main() {
                 }
 
                 // Draw the origin (optional)
-                // DrawSphere({ 0.0f, 0.0f, 0.0f }, 0.1f, BLUE);
+                // DrawSphere({ 0.0f, 0.0f, 0.0f }, 0.1f, LIME);
 
             EndMode3D();
 
